@@ -2,16 +2,26 @@
   "name": "solve",
   "version": "1.0.2",
   "description": "Recursively converts asynchronous data into static data.",
-  "main": "solve.js",
+  "main": "src/index.js",
   "directories": {
     "test": "test"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "chai": "^1.10.0",
-    "es6-promise": "^2.0.1"
+    "es6-promise": "^2.0.1",
+    "coveralls": "^2.11.2",
+    "istanbul": "^0.3.5",
+    "mocha": "^2.1.0",
+    "mocha-lcov-reporter": "0.0.1",
+    "uglify-js": "^2.4.16"
   },
-  "devDependencies": {},
   "scripts": {
+    "minify": "uglifyjs dist/solve.js -o dist/solve.min.js -m -c",
+    "globalify": "sed 's/module.exports/var solve/' src/index.js > dist/solve.js",
+    "build": "npm run globalify && npm run minify",
+    "watch": "mocha -wGR nyan",
+    "test-travis": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "test": "mocha"
   },
   "repository": {
@@ -20,7 +30,6 @@
   },
   "keywords": [
     "asynchronous",
-    "static",
     "callback",
     "promises"
   ],

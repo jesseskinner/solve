@@ -1,5 +1,5 @@
 var expect = require('chai').expect;
-var solve = require('../solve');
+var solve = require('../src/index');
 var Promise = require('es6-promise').Promise;
 
 describe('solve', function () {
@@ -113,6 +113,20 @@ describe('solve', function () {
 				expect(val).to.equal('hello');
 				done();
 			}
+		});
+	});
+
+	it('should solve synchronous promises (non-spec)', function () {
+		var nonSpecPromise = {
+			then: function (callback) {
+				// Promises should always resolve asynchronously (eg. nextTick)
+				// but let's create a bad implementation where that is not true
+				callback('done');
+			}
+		};
+
+		solve(nonSpecPromise, function (val) {
+			expect(val).to.equal('done');
 		});
 	});
 
