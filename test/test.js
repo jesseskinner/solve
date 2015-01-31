@@ -1,7 +1,28 @@
 var expect = require('chai').expect;
 var solve = require('../solve');
 var Promise = require('es6-promise').Promise;
+var data = {
+	foo: function(callback) {
+		setTimeout(function () {
+			callback('dynamic');
+		}, 1);
 
+		return 'static'
+	},
+	promise: new Promise(function(resolve){
+		resolve('done');
+	}),
+	nested: function () {
+		return function () {
+			return function () {
+				return 'deep';
+			}
+		}
+	}
+};
+solve(data, function(data) {
+	console.log(data);
+});
 describe('solve', function () {
 	it('should return whatever was passed in', function () {
 		var data = {};
