@@ -2,7 +2,6 @@ module.exports = (function(){
 'use strict';
 
 var ArrayClass = [].constructor;
-var undef;
 
 function isArray(o) {
 	return o instanceof ArrayClass;
@@ -28,11 +27,8 @@ function solve(o, callback) {
 	var bind = function (key) {
 			var initial = o[key];
 
-			// don't bother with static values
+			// don't bother changing static values
 			if (!isStatic(initial)) {
-				// start off undefined until solved
-				o[key] = undef;
-
 				solve(initial, function (value) {
 					// got a value, put it in place
 					o[key] = value;
@@ -43,6 +39,15 @@ function solve(o, callback) {
 					}
 				});
 			}
+		},
+
+		// handler for functions and promises
+		done = function (value) {
+			// remember that this callback was called
+			ran = 1;
+
+			// solve the value
+			solve(value, callback);
 		},
 
 		// used for return value of function
@@ -61,22 +66,22 @@ function solve(o, callback) {
 
 	// functions, solve the return value, and pass in a callback too
 	} else if (isFunction(o)) {
-		result = o(function (value) {
-			// remember that the callback was called
-			ran = 1;
-
-			// solve the value
-			solve(value, callback);
-		});
+		result = o(done);
 
 		// if the callback wasn't already called synchronously, process the return value
+		// note: if result is undefined, then that's what we'll start off with
 		if (!ran) {
 			solve(result, callback);
 		}
 
 	// promises (thenable), resolve via then & catch & progress (maybe)
 	} else if (isFunction(o.then)) {
-		o.then(callback, callback, callback);
+		o.then(done);
+
+		// promises start off undefined, unless somehow the promise was already resolved
+		if (!ran) {
+			callback();
+		}
 
 	} else {
 		if (isArray(o)) {

@@ -109,20 +109,36 @@ describe('solve', function () {
 		});
 
 		solve(promise, function (val) {
-			expect(val).to.equal('hello');
-			done();
+			if (val) {
+				expect(val).to.equal('hello');
+				done();
+			}
 		});
 	});
 
-	it('should solve promises that fail', function (done) {
+	it('should not solve promises that fail', function (done) {
 		var promise = new Promise(function () {
 			throw new Error('boo');
 		});
 
 		solve(promise, function (val) {
-			expect(val).to.be.an.error;
-			expect(val.message).to.equal('boo');
+			expect(val).to.be.undefined;
 			done();
+		});
+	});
+
+	it('should recursively process promise results', function (done) {
+		var promise = new Promise(function (resolve) {
+			resolve(function (callback) {
+				callback('recursive');
+			});
+		});
+
+		solve(promise, function (val) {
+			if (val) {
+				expect(val).to.equal('recursive');
+				done();
+			}
 		});
 	});
 
