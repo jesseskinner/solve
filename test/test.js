@@ -166,6 +166,16 @@ describe('solve', function () {
 		});
 	});
 
+	it('should not solve inherited properties, eg. on Object.prototype', function () {
+		Object.prototype.dumb = function () {
+			return 'ick';
+		};
+
+		solve({}, function (val) {
+			expect(val).to.be.empty;
+		});
+	});
+
 	it('should do all the above recursively', function (done) {
 		var data = {
 			bool: true,

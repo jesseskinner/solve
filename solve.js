@@ -102,7 +102,9 @@ function solve(o, callback) {
 		} else {
 			// solve each of the objects own properties
 			for (k in o) {
-				bind(k);
+				if (o.hasOwnProperty(k)) {
+					bind(k);
+				}
 			}
 		}
 
