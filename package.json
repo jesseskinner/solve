@@ -1,6 +1,6 @@
 {
   "name": "solve",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Recursively converts asynchronous data into static data.",
   "main": "src/index.js",
   "directories": {
