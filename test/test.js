@@ -1,59 +1,68 @@
 var expect = require('chai').expect;
-var resolve = require('../resolve');
+var solve = require('../solve');
 var Promise = require('es6-promise').Promise;
 
-describe('resolve', function () {
-	it('should resolve booleans immediately', function () {
-		resolve(true, function (val) {
+describe('solve', function () {
+	it('should return whatever was passed in', function () {
+		var data = {};
+		var returned = solve(data);
+
+		data.val = true;
+
+		expect(returned.val).to.be.true;
+	});
+
+	it('should solve booleans immediately', function () {
+		solve(true, function (val) {
 			expect(val).to.be.true;
 		});
 
-		resolve(false, function (val) {
+		solve(false, function (val) {
 			expect(val).to.be.false;
 		});
 	});
 
-	it('should resolve strings immediately', function () {
-		resolve('hello', function (val) {
+	it('should solve strings immediately', function () {
+		solve('hello', function (val) {
 			expect(val).to.equal('hello');
 		});
 	});
 
-	it('should resolve nulls immediately', function () {
-		resolve(null, function (val) {
+	it('should solve nulls immediately', function () {
+		solve(null, function (val) {
 			expect(val).to.be.null;
 		});
 	});
 
-	it('should resolve undefined immediately', function () {
-		resolve(undefined, function (val) {
+	it('should solve undefined immediately', function () {
+		solve(undefined, function (val) {
 			expect(val).to.be.undefined;
 		});
 	});
 
-	it('should resolve numbers immediately', function () {
-		resolve(1, function (val) {
+	it('should solve numbers immediately', function () {
+		solve(1, function (val) {
 			expect(val).to.equal(1);
 		});
 
-		resolve(1.4, function (val) {
+		solve(1.4, function (val) {
 			expect(val).to.equal(1.4);
 		});
 
-		resolve(-1/0, function (val) {
+		solve(-1/0, function (val) {
 			expect(val).to.equal(-Infinity);
 		});
 
-		resolve(1/0, function (val) {
+		solve(1/0, function (val) {
 			expect(val).to.equal(Infinity);
 		});
 
-		resolve(0/0, function (val) {
+		solve(0/0, function (val) {
 			expect(val).to.be.NaN;
 		});
 	});
 
-	it('should resolve functions recursively', function () {
+	it('should solve functions recursively', function () {
 		function fn() {
 			return function(){
 				return function(){
@@ -62,12 +71,12 @@ describe('resolve', function () {
 			};
 		}
 
-		resolve(fn, function (val) {
+		solve(fn, function (val) {
 			expect(val).to.equal(123);
 		});
 	});
 
-	it('should resolve functions via a callback parameter', function (done) {
+	it('should solve functions via a callback parameter', function (done) {
 		function fn(callback) {
 			setTimeout(function(){
 				callback('bar');
@@ -78,7 +87,7 @@ describe('resolve', function () {
 
 		var call = 0;
 
-		resolve(fn, function (val) {
+		solve(fn, function (val) {
 			call++;
 			
 			if (call === 1) {
@@ -94,26 +103,50 @@ describe('resolve', function () {
 		});
 	});
 
-	it('should resolve promises that succeed', function (done) {
+	it('should solve promises that succeed', function (done) {
 		var promise = new Promise(function (resolve) {
 			resolve('hello');
 		});
 
-		resolve(promise, function (val) {
+		solve(promise, function (val) {
 			expect(val).to.equal('hello');
 			done();
 		});
 	});
 
-	it('should resolve promises that fail', function (done) {
+	it('should solve promises that fail', function (done) {
 		var promise = new Promise(function () {
 			throw new Error('boo');
 		});
 
-		resolve(promise, function (val) {
+		solve(promise, function (val) {
 			expect(val).to.be.an.error;
 			expect(val.message).to.equal('boo');
 			done();
+		});
+	});
+
+	it('should solve each element of an array', function (done) {
+		var arr = [
+				'foo',
+				'bar',
+				function (cb) {
+					cb(123);
+				},
+				new Promise(function (resolve) {
+					resolve(456)
+				})
+			],
+			tick = 0;
+
+		solve(arr, function (val) {
+			// on second tick
+			if (tick++ >= 1) {
+				setTimeout(function () {
+					expect(val).to.eql(['foo','bar',123,456]);
+					done();
+				}, 1);
+			}
 		});
 	});
 
@@ -147,7 +180,7 @@ describe('resolve', function () {
 			}
 		};
 
-		resolve(data, function (all) {
+		solve(data, function (all) {
 			// wait for everything to finish
 			if (all && all.promise && all.nested && all.nested.complex && all.nested.complex.inner) {
 				expect(all.bool).to.be.true;
