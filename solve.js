@@ -1,29 +1,35 @@
 module.exports = (function(){
 'use strict';
 
-var ArrayClass = [].constructor;
-
-function isArray(o) {
-	return o instanceof ArrayClass;
-}
-
+// is this a static value that is already solved?
 function isStatic(o) {
+	// anything falsey is static (especially null)
+	// otherwise, consider it static if it's not a function or an object
 	return !o || !isFunction(o) && !isObject(o);
 }
 
+// is this a function?
 function isFunction(o) {
 	return typeof o === 'function';
 }
 
+// is this an array?
+function isArray(o) {
+	return o.constructor === Array;
+}
+
+// is this an object?
 function isObject(o) {
 	return typeof o === 'object';
 }
 
-function noop() {}
-
+// main solve function
 function solve(o, callback) {
-	callback = callback || noop;
+	// callback is theoretically optional
+	// we could check for it everywhere, but this is easier
+	callback = callback || function () {};
 
+	// bind makes sure results are mapped back to the array or object member
 	var bind = function (key) {
 			var initial = o[key];
 
@@ -74,7 +80,7 @@ function solve(o, callback) {
 			solve(result, callback);
 		}
 
-	// promises (thenable), resolve via then & catch & progress (maybe)
+	// promises (thenable), resolve via then
 	} else if (isFunction(o.then)) {
 		o.then(done);
 
@@ -83,14 +89,18 @@ function solve(o, callback) {
 			callback();
 		}
 
+	// otherwise either an array or an object
 	} else {
+		// check for array explicitly
 		if (isArray(o)) {
-			// iterate over arrays
+			// iterate over arrays, solve each index
 			for (k=0;k < o.length;k++) {
 				bind(k);
 			}
+
+		// everything else (objects)
 		} else {
-			// other objects, solve each property
+			// solve each of the objects own properties
 			for (k in o) {
 				bind(k);
 			}
@@ -107,6 +117,8 @@ function solve(o, callback) {
 	return o;
 }
 
+// expose the solve function
 return solve;
 
+// execute this scope immediately
 })();
