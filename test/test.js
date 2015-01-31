@@ -176,6 +176,19 @@ describe('solve', function () {
 		});
 	});
 
+	it('should not get messed up by custom hasOwnProperty method', function () {
+		var data = {
+			hasOwnProperty: function(){},
+			foo: function () {
+				return 'bar';
+			}
+		};
+
+		solve(data, function (val) {
+			expect(val.foo).to.equal('bar');
+		});
+	});
+
 	it('should do all the above recursively', function (done) {
 		var data = {
 			bool: true,

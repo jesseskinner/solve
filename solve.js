@@ -1,6 +1,8 @@
 module.exports = (function(){
 'use strict';
 
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+
 // is this a static value that is already solved?
 function isStatic(o) {
 	// anything falsey is static (especially null)
@@ -102,7 +104,7 @@ function solve(o, callback) {
 		} else {
 			// solve each of the objects own properties
 			for (k in o) {
-				if (o.hasOwnProperty(k)) {
+				if (hasOwnProperty.call(o, k)) {
 					bind(k);
 				}
 			}
