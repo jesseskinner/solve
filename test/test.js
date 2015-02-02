@@ -3,13 +3,62 @@ var solve = require('../src/index');
 var Promise = require('es6-promise').Promise;
 
 describe('solve', function () {
-	it('should return whatever was passed in', function () {
-		var data = {};
-		var returned = solve(data);
+	it('should return a function', function () {
+		var returned = solve(true);
 
-		data.val = true;
+		expect(returned).to.be.a('function');
+	});
 
-		expect(returned.val).to.be.true;
+	it('should allow listeners to be added via the return function', function () {
+		var returned = solve(true);
+
+		returned(function (val) {
+			expect(val).to.be.true;
+		});
+	});
+
+	it('should allow chaining from first listener', function () {
+		function addOne(val) {
+			return val + 1;
+		}
+
+		solve(1, addOne, addOne)(addOne, addOne)(function (result) {
+			expect(result).to.equal(5);
+		});
+	});
+
+	it('should allow separate chain paths of listeners', function () {
+		var solution = solve(1);
+
+		solution(function (value) {
+			return value + 1;
+		})(function (result) {
+			expect(result).to.equal(2);
+		});
+
+		solution(function (value) {
+			return value + 2;
+		})(function (result) {
+			expect(result).to.equal(3);
+		});
+	});
+
+	it('should allow combining streams in solution', function (done) {
+		solve({
+			one: solve(function (callback) {
+				setTimeout(function() {
+					callback(1);
+				}, 1);
+			}),
+			two: solve(2)
+		}, function (result) {
+			// wait until the timeout is done
+			if (result.one) {
+				expect(result.one).to.equal(1);
+				expect(result.two).to.equal(2);
+				done();
+			}
+		});
 	});
 
 	it('should solve booleans immediately', function () {

@@ -11,15 +11,28 @@ Recursively converts asynchronous data into static data.
 ```javascript
 var solve = require('solve');
 
-data = solve(data, function (data) {
+var stream = solve(data, function (result) {
 	// called immediately, and whenever promises resolve or callbacks are called
+});
+
+// can add other listeners later
+stream(function (result) {
+	// do something
+});
+
+// can chain additional streams
+var downstream = stream(function (result) {
+	return result + 1;
+});
+
+downstream(function (newResult) {
+	// do something
 });
 ```
 
 ## Example
 
 ```javascript
-
 var solve = require('solve');
 
 var data = {
@@ -30,30 +43,31 @@ var data = {
 
 		return 'static'
 	},
-	promise: new Promise(function(resolve){
-		resolve('done');
-	}),
 	nested: function () {
 		return function () {
 			return function () {
 				return 'deep';
 			}
 		}
-	}
+	},
+	merge: solve({
+		promise: new Promise(function(resolve){
+			resolve('done');
+		})
+	})
 };
 
 solve(data, function(data) {
 	console.log(data);
 });
-
 ```
 
 This will output:
 
 ```javascript
-{ foo: 'static', promise: undefined, nested: 'deep' }
-{ foo: 'static', promise: 'done', nested: 'deep' }
-{ foo: 'dynamic', promise: 'done', nested: 'deep' }
+{ foo: 'static', nested: 'deep', merge: { promise: undefined } }
+{ foo: 'static', nested: 'deep', merge: { promise: 'done' } }
+{ foo: 'dynamic', nested: 'deep', merge: { promise: 'done' } }
 ```
 
 ## Documentation
