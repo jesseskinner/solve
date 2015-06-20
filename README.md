@@ -28,6 +28,9 @@ var downstream = stream(function (result) {
 downstream(function (newResult) {
 	// do something
 });
+
+// later, when we don't want downstream to call callbacks anymore
+downstream.destroy();
 ```
 
 ## Example

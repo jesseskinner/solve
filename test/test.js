@@ -299,3 +299,88 @@ describe('solve', function () {
 		});
 	});
 });
+
+describe('solve.destroy', function () {
+	it('should prevent downstream callbacks from being called', function (done) {
+		var called = false;
+		var stream = solve(function (callback) {
+			setTimeout(function() {
+				callback(1);
+			}, 1);
+		});
+
+		stream(function (data) {
+			if (data === 1) {
+				called = true;
+			}
+		});
+
+		stream.destroy();
+
+		setTimeout(function() {
+			expect(called).to.be.false;
+			done();
+		}, 2);
+	});
+
+	it('should stop callback from being called', function (done) {
+		var called = false;
+		var stream = solve(function (callback) {
+			setTimeout(function() {
+				callback(1);
+			}, 1);
+		});
+
+		var downstream = stream(function (data) {
+			if (data === 1) {
+				called = true;
+			}
+		});
+
+		downstream.destroy();
+
+		setTimeout(function() {
+			expect(called).to.be.false;
+			done();
+		}, 2);
+	});
+
+	it('should prevent new listeners from being added', function () {
+		var stream = solve(true);
+
+		stream.destroy();
+
+		expect(function() {
+			stream(function(){});
+		}).to.throw(ReferenceError, /^Unable to use solve stream after calling destroy$/);
+	});
+
+	it('should allow calling destroy multiple times', function () {
+		var stream = solve(true);
+
+		stream.destroy();
+		stream.destroy();
+		stream.destroy();
+	});
+
+	it('should destroy downstream solves', function () {
+		var stream = solve(true);
+
+		var downstream = stream(function(data){ return data });
+
+		stream.destroy();
+
+		expect(function() {
+			downstream(function(){});
+		}).to.throw(ReferenceError, /^Unable to use solve stream after calling destroy$/);
+	});
+
+	it('should allow calling destroy on destroyed downstream solves', function () {
+		var stream = solve(true);
+
+		var downstream = stream(function(data){ return data });
+
+		stream.destroy();
+		downstream.destroy();
+	});
+});

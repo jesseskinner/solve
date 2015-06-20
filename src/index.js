@@ -26,6 +26,11 @@ function isObject(o) {
 	return typeof o === 'object';
 }
 
+// throw an error if trying to use a destroyed solve (attached below)
+function destroyed() {
+	throw new ReferenceError('Unable to use solve stream after calling destroy');
+}
+
 // main solve function
 function solve(o) {
 	// add all the arguments after the first one as chained listeners
@@ -79,34 +84,70 @@ function solve(o) {
 			lastResult = value;
 		},
 
+		// used to create new streams and/or add listeners
+		downstream = function (chained) {
+			var callback;
+
+			// create a new solve stream each time, to allow chaining of streams
+			var stream = solve(function (downstreamCallback) {
+				// grab a reference to the new callback method
+				callback = downstreamCallback;
+			});
+
+			function run(data) {
+				for (var i=0; i < chained.length; i++) {
+					// chain the return values through each function
+					data = chained[i](data);
+				}
+
+				// pass the final value on to any downstream listeners
+				callback(data);
+			}
+
+			// enhance destroy method, so it also detaches from upstream
+			var destroy = stream.destroy;
+
+			// make reference to new stream from listener
+			run.destroy = stream.destroy = function () {
+				// remove the listener from this (upstream) stream
+				if (listeners) {
+					// search for and remove specific listener
+					for (var i=0; i < listeners.length; i++) {
+						if (run === listeners[i]) {
+							listeners.splice(i, 1);
+
+							// stop, it won't be anywhere else
+							break;
+						}
+					}
+				}
+
+				// call the old, basic destroy method
+				destroy();
+			};
+
+			// lazily create listeners array
+			if (!listeners) {
+				listeners = [];
+			}
+
+			// add a listener to this solution for future changes
+			listeners.push(run);
+
+			// pass through the most recent result immediately
+			run(lastResult);
+
+			// return the new stream so additional listeners can be added
+			return stream;
+		},
+
 		// used to create new streams
 		stream = function () {
 			// any callbacks passed to this method will be chained together
 			var chained = slice.call(arguments, 0);
 
-			// return a new solve stream each time, to allow chaining of streams
-			return solve(function (callback) {
-				function run(data) {
-					for (var i=0; i < chained.length; i++) {
-						// chain the return values through each function
-						data = chained[i](data);
-					}
-
-					// pass the final value on to any downstream listeners
-					callback(data);
-				}
-
-				// lazily create listeners array
-				if (!listeners) {
-					listeners = [];
-				}
-
-				// add a listener to this solution for future changes
-				listeners.push(run);
-
-				// pass through the current transformation now
-				run(lastResult);
-			});
+			// create a new stream that's downstream from this stream
+			return downstream(chained);
 		},
 
 		listeners,
@@ -172,6 +213,23 @@ function solve(o) {
 		// definitely call update after first run through
 		update(o);
 	}
+
+	// add destroy method
+	stream.destroy = function () {
+		// recursively destroy any downstreams
+		if (listeners) {
+			for (var i=0; i < listeners.length; i++) {
+				// destroy each downstream
+				listeners[i].destroy();
+			}
+
+			// wipe listeners, prevent memory leaks
+			listeners = undefined;
+		}
+
+		// from here on, adding a new downstream will throw an error
+		downstream = destroyed;
+	};
 
 	// return a function that allows adding additional listeners
 	return stream;
