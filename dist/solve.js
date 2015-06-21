@@ -28,7 +28,7 @@ function isObject(o) {
 
 // throw an error if trying to use a destroyed solve (attached below)
 function destroyed() {
-	throw new ReferenceError('Unable to use solve stream after calling destroy');
+	throw new ReferenceError('Unable to add listener after calling destroy');
 }
 
 // main solve function

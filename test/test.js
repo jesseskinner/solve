@@ -372,7 +372,7 @@ describe('solve.destroy', function () {
 
 		expect(function() {
 			downstream(function(){});
-		}).to.throw(ReferenceError, /^Unable to use solve stream after calling destroy$/);
+		}).to.throw(ReferenceError, /^Unable to add listener after calling destroy$/);
 	});
 
 	it('should allow calling destroy on destroyed downstream solves', function () {
