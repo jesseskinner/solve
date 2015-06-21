@@ -61,6 +61,19 @@ describe('solve', function () {
 		});
 	});
 
+	it('should delay execution until listener is added', function () {
+		var value = 0,
+			stream = solve(function () {
+				value = 1;
+			});
+
+		expect(value).to.equal(0);
+
+		stream(function(){});
+
+		expect(value).to.equal(1);
+	});
+
 	it('should solve booleans immediately', function () {
 		solve(true, function (val) {
 			expect(val).to.be.true;

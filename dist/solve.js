@@ -1,4 +1,4 @@
-var solve = (function(){
+var solve = (function(undefined){
 'use strict';
 
 var hasOwnProperty = ({}).hasOwnProperty;
@@ -29,6 +29,11 @@ function isObject(o) {
 // throw an error if trying to use a destroyed solve (attached below)
 function destroyed() {
 	throw new ReferenceError('Unable to add listener after calling destroy');
+}
+
+// used as a chained function to force new downstream solve to execute immediately
+function passthrough(data) {
+	return data;
 }
 
 // main solve function
@@ -88,11 +93,17 @@ function solve(o) {
 		downstream = function (chained) {
 			var callback;
 
+			// run through a first time now, if we haven't yet
+			if (firstRun) {
+				firstRun();
+			}
+
 			// create a new solve stream each time, to allow chaining of streams
 			var stream = solve(function (downstreamCallback) {
 				// grab a reference to the new callback method
 				callback = downstreamCallback;
-			});
+
+			}, passthrough);
 
 			function run(data) {
 				for (var i=0; i < chained.length; i++) {
@@ -150,6 +161,60 @@ function solve(o) {
 			return downstream(chained);
 		},
 
+		firstRun = function () {
+			// statics, we're done
+			if (isStatic(o)) {
+				update(o);
+
+			// functions, solve the return value, and pass in a update too
+			} else if (isFunction(o)) {
+				result = o(done);
+
+				// if the update wasn't already called synchronously, process the return value
+				// note: if result is undefined, then that's what we'll start off with
+				if (!ran) {
+					solve(result, update);
+				}
+
+			// promises (thenable), resolve via then
+			} else if (isFunction(o.then)) {
+				o.then(done);
+
+				// promises start off undefined, unless somehow the promise was already resolved
+				if (!ran) {
+					update();
+				}
+
+			// otherwise either an array or an object
+			} else {
+				// check for array explicitly
+				if (isArray(o)) {
+					// iterate over arrays, solve each index
+					for (k=0;k < o.length;k++) {
+						bind(k);
+					}
+
+				// everything else (objects)
+				} else {
+					// solve each of the objects own properties
+					for (k in o) {
+						if (hasOwnProperty.call(o, k)) {
+							bind(k);
+						}
+					}
+				}
+
+				// we've ran through it once, now bindings can call update
+				ran = 1;
+
+				// definitely call update after first run through
+				update(o);
+			}
+
+			// self destruct
+			firstRun = undefined;
+		},
+
 		listeners,
 
 		// used to keep track of result for when new listeners added
@@ -165,53 +230,9 @@ function solve(o) {
 		// also used to check if we're done first run of object properties
 		ran;
 
-	// statics, we're done
-	if (isStatic(o)) {
-		update(o);
-
-	// functions, solve the return value, and pass in a update too
-	} else if (isFunction(o)) {
-		result = o(done);
-
-		// if the update wasn't already called synchronously, process the return value
-		// note: if result is undefined, then that's what we'll start off with
-		if (!ran) {
-			solve(result, update);
-		}
-
-	// promises (thenable), resolve via then
-	} else if (isFunction(o.then)) {
-		o.then(done);
-
-		// promises start off undefined, unless somehow the promise was already resolved
-		if (!ran) {
-			update();
-		}
-
-	// otherwise either an array or an object
-	} else {
-		// check for array explicitly
-		if (isArray(o)) {
-			// iterate over arrays, solve each index
-			for (k=0;k < o.length;k++) {
-				bind(k);
-			}
-
-		// everything else (objects)
-		} else {
-			// solve each of the objects own properties
-			for (k in o) {
-				if (hasOwnProperty.call(o, k)) {
-					bind(k);
-				}
-			}
-		}
-
-		// we've ran through it once, now bindings can call update
-		ran = 1;
-
-		// definitely call update after first run through
-		update(o);
+	// only run through immediately if there are chained functions
+	if (chained.length > 0) {
+		firstRun();
 	}
 
 	// add destroy method
@@ -222,10 +243,10 @@ function solve(o) {
 				// destroy each downstream
 				listeners[i].destroy();
 			}
-
-			// wipe listeners, prevent memory leaks
-			listeners = undefined;
 		}
+
+		// wipe data and listeners to prevent memory leaks
+		listeners = o = undefined;
 
 		// from here on, adding a new downstream will throw an error
 		downstream = destroyed;
