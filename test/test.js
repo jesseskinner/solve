@@ -265,6 +265,23 @@ describe('solve', function () {
 		});
 	});
 
+	it('should not recursively dig into objects & arrays in results', function () {
+		var called = false;
+		var data = {
+			foo: function () {
+				called = true;
+			}
+		};
+
+		solve({
+			data: function (callback) {
+				return data;
+			}
+		})();
+
+		expect(called).to.equal(false);
+	});
+
 	it('should do all the above recursively', function (done) {
 		var data = {
 			bool: true,
@@ -282,16 +299,16 @@ describe('solve', function () {
 					};
 				});
 			},
-			nested: {
-				complex: function (cb) {
-					cb({
-						inner: function () {
-							return new Promise(function (resolve) {
-								resolve('yay');
-							});
-						}
+			nested: function (cb) {
+				cb(function () {
+					return new Promise(function (resolve) {
+						resolve({
+							complex: {
+								inner: 'yay'
+							}
+						});
 					});
-				}
+				});
 			}
 		};
 

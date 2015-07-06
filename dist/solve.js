@@ -61,15 +61,25 @@ function solve(o) {
 
 		// handler for functions and promises
 		done = function (value) {
-			// remember that this update was called
-			ran = 1;
+			// recursively solve the value,  if it's a function or a promise
+			if (value && isFunction(value.then)) {
+				value.then(done);
+			} else if (isFunction(value)) {
+				result = value(done);
 
-			// solve the value
-			solve(value, update);
+				if (!ran) {
+					done(result);
+				}
+			} else {
+				update(value);
+			}
 		},
 
 		// called when result changes, to pass to all the listeners
 		update = function (value) {
+			// remember that this update was called
+			ran = 1;
+
 			var i;
 
 			// these pass the new values along to the next one
@@ -173,7 +183,7 @@ function solve(o) {
 				// if the update wasn't already called synchronously, process the return value
 				// note: if result is undefined, then that's what we'll start off with
 				if (!ran) {
-					solve(result, update);
+					done(result);
 				}
 
 			// promises (thenable), resolve via then
