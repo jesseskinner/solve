@@ -1,6 +1,6 @@
 {
   "name": "solve",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "homepage": "https://github.com/jesseskinner/solve",
   "description": "Recursively converts asynchronous data into static data.",
   "main": "dist/solve.js",
